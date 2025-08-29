@@ -1,4 +1,4 @@
-setwd('~/Documents/projects/project_DGD/2025_08_28/')
+setwd('~/Documents/projects/project_DGD/cancer_sample_normalization/')
 
 library(dplyr)
 library(glue)

@@ -32,7 +32,7 @@ for dataset in datasets:
     # Load the samples into a data frame.
     df_samples = \
     ioutil.load_samples(# The CSV file where the samples are stored
-                        csv_file = '/Users/srz223/Documents/projects/project_DGD/' + date + '/data/' + dataset + '_counts_dgd_input.csv',
+                        csv_file = '/Users/srz223/Documents/projects/project_DGD/cancer_sample_normalization/data/' + dataset + '_counts_dgd_input.csv',
                         # The field separator in the CSV file
                         sep = ",",
                         # Whether to keep the original samples' names/
