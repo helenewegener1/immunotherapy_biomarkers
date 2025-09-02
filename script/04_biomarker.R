@@ -4,13 +4,14 @@ library(tidyverse)
 library(glue)
 library(biomaRt)
 library(GSVA)
-# library(rJava)
+# Sys.setenv(JAVA_HOME = "/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home")
+library(rJava)
 library(xlsx)
 
 source('script/functions.R')
 
-df_dgd_list <- readRDS('rds/03_df_dgd_list.rds')
-df_tpm_list <- readRDS('rds/03_df_tpm_list.rds')
+# df_dgd_list <- readRDS('rds/03_df_dgd_list.rds')
+# df_tpm_list <- readRDS('rds/03_df_tpm_list.rds')
 
 ###############################################################
 #################### 01 EDA - Density plots ################### 
@@ -51,8 +52,14 @@ mapply(plot_density_dgd, df = df_dgd_list, study = names(df_dgd_list))
 ########################## 02 ssGSEA ########################## 
 ###############################################################
 
+source('script/functions.R')
+
+# Load matrix format of DGD and TPM data
 mat_dgd_list <- readRDS('rds/04_mat_dgd_list.rds')
 mat_tpm_list <- readRDS('rds/04_mat_tpm_list.rds')
+
+# Load metadata
+cohorts <- readRDS('data/wetransfer_bulkrnaseq_2025-08-28_1101/cohorts_all_allNorm.rds')
 
 # Translate gene symbols to ensembl
 mart <- useMart("ensembl", dataset = "hsapiens_gene_ensembl")
@@ -70,6 +77,9 @@ biomarker_result <- list()
 study_list_full <- names(mat_dgd_list)
 score_list_full <- names(response_scores)
 
+# One score, one study
+# biomarker_result <- biomarker_analysis(study_list = c('Hugo_MEL'), score_list = c('TGEP'))
+
 # Add a new score to all data sets - remember to add the geneset of the score in response_scores
 # biomarker_result <- biomarker_analysis(study_list = study_list_full, score_list = c('NEW_SCORE'))
 
@@ -82,5 +92,31 @@ biomarker_result <- biomarker_analysis(study_list = study_list_full, score_list 
 # Save in excel 
 openxlsx::write.xlsx(biomarker_result, file = "table/04_biomarker_scores.xlsx")
 saveRDS(biomarker_result, 'rds/04_biomarker_result.rds')
+
+###############################################################
+####################### Meta data ####################### 
+###############################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 

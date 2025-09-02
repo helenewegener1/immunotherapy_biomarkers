@@ -72,6 +72,9 @@ run_ssgsea <- function(mat_expr, geneset){
 
 biomarker_analysis <- function(study_list, score_list) {
   
+  study <- 'Hugo_MEL'
+  score <- 'TGEP'
+  
   for (study in study_list){
     
     # Load data from study
@@ -109,18 +112,51 @@ biomarker_analysis <- function(study_list, score_list) {
       
       df_plot <- rbind(df_ssgsea_tpm, df_ssgsea_dgd)
       
+      # Add metadata 
+      ## Find the cancer_type that contains your study
+      which_caner_type <- names(cohorts)[sapply(cohorts, function(x) study %in% names(x))]
+      
+      df_clinical <- cohorts[[which_caner_type]][[study]]$Clinical %>% 
+        dplyr::select(Sample, Response, Biopsy_time) %>% 
+        mutate(Sample = glue('{study}_{Sample}'))
+      
+      df_plot <- left_join(df_plot, df_clinical, by = 'Sample')
+      
       # Plot 
-      df_plot %>% ggplot(aes(x = Sample, y = score, fill = Data)) + 
-        geom_col(position = 'dodge') + 
-        scale_fill_manual(values = c('darkgrey', 'grey30')) +
-        theme_bw() + 
-        theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-        labs(title = glue('{study} - {score} score'),
-             subtitle = glue('{score} is based on {length(genes)} genes.'),
-             y = glue('{score} score'))
+      if (score == 'housekeeping'){
+        
+        df_plot %>% ggplot(aes(x = Sample, y = score, fill = Data)) +
+          geom_col(position = 'dodge') + 
+          scale_fill_manual(values = c('grey30', 'darkgrey')) +
+          theme_bw() + 
+          theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+          labs(title = glue('{study} - {score} score'),
+               subtitle = glue('{score} is based on {length(genes)} genes.'),
+               y = glue('{score} score'))
+        
+        ggsave(glue('plot/04_02_{study}_{score}.png'), width = 20, height = 10)
+        
+      } else {
+        
+        for (var_split in c('Response', 'Biopsy_time')){
+          
+          df_plot %>% ggplot(aes(x = Sample, y = score, fill = Data)) + 
+            facet_wrap(vars(!!sym(var_split)), scales = "free_x", ncol = 1, nrow = unique(df_plot[[var_split]]) %>% length()) +
+            geom_col(position = 'dodge') + 
+            scale_fill_manual(values = c('grey30', 'darkgrey')) +
+            theme_bw() + 
+            theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+            labs(title = glue('{study} - {score} score'),
+                 subtitle = glue('{score} is based on {length(genes)} genes.'),
+                 y = glue('{score} score'))
+          
+          ggsave(glue('plot/04_02_{study}_{score}_{var_split}.png'), width = 20, height = 10)
+          
+        }
+        
+      }
       
-      ggsave(glue('plot/04_02_{study}_{score}.png'), width = 20, height = 5)
-      
+     
       # Table output
       new_name_TPM <- glue("TPM_{score}")
       new_name_DGD <- glue("DGD_{score}")
@@ -134,6 +170,7 @@ biomarker_analysis <- function(study_list, score_list) {
       if(is.null(biomarker_result[[study]])){
         df_table_export <- df_table
       } else {
+        df_table %>% dplyr::select(Sample, TPM_TGEP, DGD_TGEP)
         df_table_export <- left_join(biomarker_result[[study]], df_table)
       }
       
