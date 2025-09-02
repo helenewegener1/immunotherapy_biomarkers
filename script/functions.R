@@ -72,8 +72,8 @@ run_ssgsea <- function(mat_expr, geneset){
 
 biomarker_analysis <- function(study_list, score_list) {
   
-  study <- 'Hugo_MEL'
-  score <- 'TGEP'
+  # study <- 'Riaz_MEL'
+  # score <- 'TGEP'
   
   for (study in study_list){
     
@@ -112,11 +112,32 @@ biomarker_analysis <- function(study_list, score_list) {
       
       df_plot <- rbind(df_ssgsea_tpm, df_ssgsea_dgd)
       
+      # Using signifinder
+      # log_mat_tpm <- log(mat_tpm + 1)
+      # log_mat_dgd <- log(mat_dgd + 1)
+      # 
+      # tpm_TinflamSign <- TinflamSign(log_mat_tpm, nametype = 'ENSEMBL')
+      # dgd_TinflamSign <- TinflamSign(log_mat_dgd, nametype = 'ENSEMBL')
+      
+      # tpm_TinflamSign <- TinflamSign(mat_tpm, nametype = 'ENSEMBL')
+      # dgd_TinflamSign <- TinflamSign(mat_dgd, nametype = 'ENSEMBL')
+      # 
+      # df_signi <- data.frame(Sample = colnames(mat_tpm),
+      #                        'TPM_TinflamSign' = tpm_TinflamSign$Tinflam_Ayers,
+      #                        'DGD_TinflamSign' = dgd_TinflamSign$Tinflam_Ayers
+      #                       )
+      # 
+      # df_signi_long <- df_signi %>% pivot_longer(cols = !Sample,
+      #                                            names_to = 'Data', 
+      #                                            values_to = 'score')
+      # # Merge
+      # df_plot <- rbind(df_plot, df_signi_long)
+      
       # Add metadata 
       ## Find the cancer_type that contains your study
-      which_caner_type <- names(cohorts)[sapply(cohorts, function(x) study %in% names(x))]
+      which_cancer_type <- names(cohorts)[sapply(cohorts, function(x) study %in% names(x))]
       
-      df_clinical <- cohorts[[which_caner_type]][[study]]$Clinical %>% 
+      df_clinical <- cohorts[[which_cancer_type]][[study]]$Clinical %>% 
         dplyr::select(Sample, Response, Biopsy_time) %>% 
         mutate(Sample = glue('{study}_{Sample}'))
       
@@ -125,11 +146,13 @@ biomarker_analysis <- function(study_list, score_list) {
       # Plot 
       if (score == 'housekeeping'){
         
-        df_plot %>% ggplot(aes(x = Sample, y = score, fill = Data)) +
-          geom_col(position = 'dodge') + 
+        df_plot %>% 
+          ggplot(aes(y = score, fill = Data, x = interaction(!!sym(var_split), Data))) + 
+          geom_boxplot() + 
+          geom_jitter(aes(y = score, x = interaction(!!sym(var_split), Data)), alpha = 0.7, shape = 21) + 
           scale_fill_manual(values = c('grey30', 'darkgrey')) +
           theme_bw() + 
-          theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+          theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
           labs(title = glue('{study} - {score} score'),
                subtitle = glue('{score} is based on {length(genes)} genes.'),
                y = glue('{score} score'))
@@ -140,41 +163,55 @@ biomarker_analysis <- function(study_list, score_list) {
         
         for (var_split in c('Response', 'Biopsy_time')){
           
-          df_plot %>% ggplot(aes(x = Sample, y = score, fill = Data)) + 
-            facet_wrap(vars(!!sym(var_split)), scales = "free_x", ncol = 1, nrow = unique(df_plot[[var_split]]) %>% length()) +
-            geom_col(position = 'dodge') + 
-            scale_fill_manual(values = c('grey30', 'darkgrey')) +
+          # df_plot %>% ggplot(aes(x = Sample, y = score, fill = Data)) + 
+          #   facet_wrap(vars(!!sym(var_split)), scales = "free_x", ncol = 1, nrow = unique(df_plot[[var_split]]) %>% length()) +
+          #   geom_col(position = 'dodge') + 
+          #   scale_fill_manual(values = c('grey30', 'darkgrey')) +
+          #   theme_bw() + 
+          #   theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+          #   labs(title = glue('{study} - {score} score'),
+          #        subtitle = glue('{score} is based on {length(genes)} genes.'),
+          #        y = glue('{score} score'))
+          # 
+          # ggsave(glue('plot/04_02_{study}_{score}_{var_split}.png'), width = 20, height = 10)
+          
+          df_plot %>% 
+            # filter(Data %in% c('TPM', 'DGD')) %>%
+            ggplot(aes(y = score, fill = Data, x = interaction(!!sym(var_split), Data))) + 
+            geom_boxplot() + 
+            geom_jitter(aes(y = score, x = interaction(!!sym(var_split), Data)), alpha = 0.7, shape = 21) + 
+            # scale_fill_manual(values = c('grey30', 'darkgrey')) +
             theme_bw() + 
-            theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+            theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
             labs(title = glue('{study} - {score} score'),
                  subtitle = glue('{score} is based on {length(genes)} genes.'),
-                 y = glue('{score} score'))
+                 y = glue('{score} ssGSEA score'), 
+                 x = glue('{var_split} and data type'))
           
-          ggsave(glue('plot/04_02_{study}_{score}_{var_split}.png'), width = 20, height = 10)
+        ggsave(glue('plot/04_03_{study}_{score}_{var_split}.png'), width = 10, height = 8)
           
         }
         
       }
       
-     
-      # Table output
-      new_name_TPM <- glue("TPM_{score}")
-      new_name_DGD <- glue("DGD_{score}")
-      
-      df_table <- df_plot %>% 
-        pivot_wider(names_from = Data,
-                    values_from = score) %>% 
-        rename(!!new_name_TPM := TPM,
-               !!new_name_DGD := DGD)
-      
-      if(is.null(biomarker_result[[study]])){
-        df_table_export <- df_table
-      } else {
-        df_table %>% dplyr::select(Sample, TPM_TGEP, DGD_TGEP)
-        df_table_export <- left_join(biomarker_result[[study]], df_table)
-      }
-      
-      biomarker_result[[study]] <- df_table_export
+      # # Table output
+      # new_name_TPM <- glue("TPM_{score}")
+      # new_name_DGD <- glue("DGD_{score}")
+      # 
+      # df_table <- df_plot %>% 
+      #   pivot_wider(names_from = Data,
+      #               values_from = score) %>% 
+      #   rename(!!new_name_TPM := TPM,
+      #          !!new_name_DGD := DGD)
+      # 
+      # if(is.null(biomarker_result[[study]])){
+      #   df_table_export <- df_table
+      # } else {
+      #   df_table %>% dplyr::select(Sample, !!sym(new_name_TPM), !!sym(new_name_DGD))
+      #   df_table_export <- left_join(biomarker_result[[study]], df_table)
+      # }
+      # 
+      # biomarker_result[[study]] <- df_table_export
       
     }
     

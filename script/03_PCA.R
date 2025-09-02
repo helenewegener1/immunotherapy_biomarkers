@@ -12,11 +12,17 @@ date <- '2025_08_28'
 # studies <- c('Hugo_MEL', 'Riaz_MEL')
 # prefix <- 'two'
 
-studies <- c("Auslander_MEL", "Braun_ccRCC", "Cho_NSCLC", "Choueiri_aRCC",
+# studies <- c("Auslander_MEL", "Braun_ccRCC", "Cho_NSCLC", "Choueiri_aRCC",
+#              "Clouphesy_GBM", "Du_MEL", "Gide_MEL", "Hugo_MEL", "Jung_NSCLC",
+#              "Kim_GC", "Liu_MEL", "Mamdani_rEAC", "Mariathasan_UC",
+#              "McDermott_RCC", "Miao_ccRCC", "Motzer_aRCC", "Nathanson_MEL",
+#              "Ravi_NSCLC", "Riaz_MEL", "Rose_mUC", "Snyder_UC",
+#              "VanAllen_aMEL", "Vandenende_rEAC", "Zappasodi_MEL", "Zhao_GBM")
+studies <- c("Auslander_MEL", "Cho_NSCLC", "Choueiri_aRCC",
              "Clouphesy_GBM", "Du_MEL", "Gide_MEL", "Hugo_MEL", "Jung_NSCLC",
              "Kim_GC", "Liu_MEL", "Mamdani_rEAC", "Mariathasan_UC",
-             "McDermott_RCC", "Miao_ccRCC", "Motzer_aRCC", "Nathanson_MEL",
-             "Ravi_NSCLC", "Riaz_MEL", "Rose_mUC", "Snyder_UC",
+             "McDermott_RCC", 
+             "Ravi_NSCLC", "Riaz_MEL", 
              "VanAllen_aMEL", "Vandenende_rEAC", "Zappasodi_MEL", "Zhao_GBM")
 prefix <- 'all'
 
@@ -24,7 +30,7 @@ prefix <- 'all'
 ##################### Load and merge data ##################### 
 ###############################################################
 
-df_dgd_latent_space <- data_frame() # DGD Latent space
+df_dgd_latent_space <- data.frame() # DGD Latent space
 df_dgd_list <- list() # DGD decoder output (DGD normalization)
 
 for (study in studies){
@@ -232,3 +238,25 @@ df_dgd_latent_space %>%
   labs(title = 'DGD Latent variables')
 
 ggsave(glue('plot/03_{prefix}_DGD_latent_variables.png'), height = 8, width = 12)
+
+
+###############################################################
+################### PCA on DGD Latent Space ###################
+###############################################################
+pca_latent <- prcomp(df_dgd_latent_space %>% column_to_rownames('sample') %>% dplyr::select(!c(tissue, study)), scale. = TRUE)
+
+# Save results in object that is ready for gg-plotting 
+df_pca_latent <- pca_latent$x %>% as.data.frame() %>% dplyr::select(PC1, PC2, PC3) %>% rownames_to_column('sample')
+
+# Merge with meta data bc we love colors <3 
+df_pca_latent <- df_pca_latent %>% left_join(metadata, by = 'sample')
+
+df_pca_latent %>% 
+  ggplot(aes(x = PC1, 
+             y = PC2, 
+             color = study)) + 
+  geom_point() + 
+  theme_bw() + 
+  labs(title = 'Latent space --> PCA')
+
+ggsave(glue('plot/03_{prefix}_PCA_DGD_latent_variables.png'), height = 8, width = 12)
