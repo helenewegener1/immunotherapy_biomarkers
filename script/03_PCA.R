@@ -6,6 +6,9 @@ library(biomaRt)
 library(GSVA)
 
 cohorts <- readRDS('data/wetransfer_bulkrnaseq_2025-08-28_1101/cohorts_all_allNorm.rds')
+df_clinical <- readRDS('rds/00_metadata.rds')
+
+meta_vars <- c('Response', 'Biopsy_time', 'study', 'cancer', 'reference_genome', 'Treatment', 'Age', 'Sex', 'RECIST')
 
 date <- '2025_08_28'
 
@@ -18,76 +21,142 @@ date <- '2025_08_28'
 #              "McDermott_RCC", "Miao_ccRCC", "Motzer_aRCC", "Nathanson_MEL",
 #              "Ravi_NSCLC", "Riaz_MEL", "Rose_mUC", "Snyder_UC",
 #              "VanAllen_aMEL", "Vandenende_rEAC", "Zappasodi_MEL", "Zhao_GBM")
+# prefix <- 'all'
+
 studies <- c("Auslander_MEL", "Cho_NSCLC", "Choueiri_aRCC",
              "Clouphesy_GBM", "Du_MEL", "Gide_MEL", "Hugo_MEL", "Jung_NSCLC",
              "Kim_GC", "Liu_MEL", "Mamdani_rEAC", "Mariathasan_UC",
              "McDermott_RCC", 
              "Ravi_NSCLC", "Riaz_MEL", 
              "VanAllen_aMEL", "Vandenende_rEAC", "Zappasodi_MEL", "Zhao_GBM")
-prefix <- 'all'
+prefix <- 'all_raw'
 
 ###############################################################
 ##################### Load and merge data ##################### 
 ###############################################################
 
-df_dgd_latent_space <- data.frame() # DGD Latent space
-df_dgd_list <- list() # DGD decoder output (DGD normalization)
-
-for (study in studies){
-  
-  # DGD Latent space
-  tmp_df <- read_csv(glue('out/{date}_{study}_representations.csv'))
-  tmp_df$study <- study
-  tmp_df$sample <- glue('{study}_{tmp_df$sample}')
-  
-  df_dgd_latent_space <- rbind(df_dgd_latent_space, tmp_df)
-  
-  rm(tmp_df)
-
-  # DGD decoder output (DGD normalization)
-  tmp_df <- read_csv(glue('out/{date}_{study}_decoder_outputs.csv'))
-  tmp_df$study <- study
-  tmp_df$sample <- glue('{study}_{tmp_df$sample}')
-
-  df_dgd_list[[study]] <- tmp_df
-
-  rm(tmp_df)
-  
-}
-
-# TPM
-
-df_tpm_list <- list() # TPM normalization
-cancer_types <- names(cohorts)
-
-for (cancer in cancer_types){
-  
-  tmp_studies <- cohorts[[cancer]] %>% names()
-  
-  for (study in tmp_studies){
-    
-    tmp_df <- cohorts[[cancer]][[study]]$tpm %>% rownames_to_column('genes')
-    tmp_df$study <- study
-    colnames(tmp_df) <- c('genes', glue('{study}_{colnames(tmp_df)[2:(length(colnames(tmp_df))-1)]}'), 'study')
-    
-    df_tpm_list[[study]] <- tmp_df
-    
-    rm(tmp_df)
-    
-  }
-  
-  rm(tmp_studies)
-  
-}
-
-# Subset
-df_tpm_list <- df_tpm_list[studies]
+# df_dgd_latent_space <- data.frame() # DGD Latent space
+# df_dgd_list <- list() # DGD decoder output (DGD normalization)
+# 
+# for (study in studies){
+# 
+#   # DGD Latent space
+#   tmp_df <- read_csv(glue('out/{date}_{study}_representations.csv'))
+#   tmp_df$study <- study
+#   tmp_df$sample <- glue('{study}_{tmp_df$sample}')
+# 
+#   df_dgd_latent_space <- rbind(df_dgd_latent_space, tmp_df)
+# 
+#   rm(tmp_df)
+# 
+#   # DGD decoder output (DGD normalization)
+#   tmp_df <- read_csv(glue('out/{date}_{study}_decoder_outputs.csv'))
+#   tmp_df$study <- study
+#   tmp_df$sample <- glue('{study}_{tmp_df$sample}')
+# 
+#   df_dgd_list[[study]] <- tmp_df
+# 
+#   rm(tmp_df)
+# 
+# }
+# 
+# df_dgd_latent_space
+# 
+# # TPM
+# 
+# df_tpm_list <- list() # TPM normalization
+# cancer_types <- names(cohorts)
+# 
+# for (cancer in cancer_types){
+#   
+#   tmp_studies <- cohorts[[cancer]] %>% names()
+#   
+#   for (study in tmp_studies){
+#     
+#     tmp_df <- cohorts[[cancer]][[study]]$tpm %>% rownames_to_column('genes')
+#     tmp_df$study <- study
+#     colnames(tmp_df) <- c('genes', glue('{study}_{colnames(tmp_df)[2:(length(colnames(tmp_df))-1)]}'), 'study')
+#     
+#     df_tpm_list[[study]] <- tmp_df
+#     
+#     rm(tmp_df)
+#     
+#   }
+#   
+#   rm(tmp_studies)
+#   
+# }
+# 
+# # Subset
+# df_tpm_list <- df_tpm_list[studies]
 
 # Export 
 # saveRDS(df_dgd_list, 'rds/03_df_dgd_list.rds')
 # saveRDS(df_tpm_list, 'rds/03_df_tpm_list.rds')
-df_dgd_list <- readRDS('rds/03_df_dgd_list.rds')
-df_tpm_list <- readRDS('rds/03_df_tpm_list.rds')
+# saveRDS(df_dgd_latent_space, 'rds/03_df_dgd_latent_space.rds')
+
+# df_dgd_list <- readRDS('rds/03_df_dgd_list.rds')
+# df_tpm_list <- readRDS('rds/03_df_tpm_list.rds')
+# df_dgd_latent_space <- readRDS('rds/03_df_dgd_latent_space.rds')
+
+###############################################################
+####################### DGD Latent Space ######################
+###############################################################
+
+# Add meta data 
+df_dgd_latent_space_plot <- df_dgd_latent_space %>% 
+  dplyr::select(sample, latent_dim_1, latent_dim_2, latent_dim_3) %>% 
+  left_join(df_clinical, by = c('sample' = 'Sample'))
+
+for (var in meta_vars){
+  
+  df_dgd_latent_space_plot %>% 
+    ggplot(aes(x = latent_dim_1, 
+               y = latent_dim_2, 
+               color = !!sym(var))) + 
+    geom_point() + 
+    theme_bw() + 
+    labs(title = 'DGD Latent variables')
+  
+  ggsave(glue('plot/03_{prefix}_DGD_latent_variables_{var}.png'), height = 8, width = 12)
+
+}
+
+
+###############################################################
+################### PCA on DGD Latent Space ###################
+###############################################################
+
+pca_latent <- prcomp(df_dgd_latent_space %>% column_to_rownames('sample') %>% dplyr::select(!c(tissue, study)), scale. = TRUE)
+
+# Save results in object that is ready for gg-plotting 
+df_pca_latent <- pca_latent$x %>% as.data.frame() %>% 
+  dplyr::select(PC1, PC2, PC3) %>% 
+  rownames_to_column('sample') %>% 
+  left_join(df_clinical, by = c('sample' = 'Sample'))
+
+
+# Variance explained per PC
+pca_latent_var_explained <- (pca_latent$sdev^2) / sum(pca_latent$sdev^2)
+
+# Percentage explained for first 10 PCs
+pca_latent_var_explained_percent <- pca_latent_var_explained[1:10] * 100
+
+for (var in meta_vars){
+  
+  df_pca_latent %>% 
+    ggplot(aes(x = PC1, 
+               y = PC2, 
+               color = !!sym(var))) + 
+    geom_point() + 
+    theme_bw() + 
+    labs(title = 'Latent space --> PCA', 
+         x = glue('PC1 ({round(pca_latent_var_explained_percent[1], 1)}% variance explained)'),
+         y = glue('PC2 ({round(pca_latent_var_explained_percent[2], 1)}% variance explained)'))
+  
+  ggsave(glue('plot/03_{prefix}_PCA_latent_variables_{var}.png'), height = 8, width = 12)
+  
+}
 
 
 ###############################################################
@@ -134,14 +203,49 @@ expr_t <- t(expr) # Transpose to samples (rows) × genes (columns)
 expr_t_nzv <- expr_t[, apply(expr_t, 2, function(x) sd(x) > 0)]
 # ncol(expr_t) - ncol(expr_t_nzv) # N genes we loose 
 
+n_genes <- ncol(expr_t_nzv)
+
 # run PCA
 pca_tpm <- prcomp(expr_t_nzv, scale. = TRUE)
 
 # Save results in object that is ready for gg-plotting 
 df_pca_tpm <- pca_tpm$x %>% as.data.frame() %>% dplyr::select(PC1, PC2, PC3) %>% rownames_to_column('sample')
 
-# Merge with meta data bc we love colors <3 
-df_pca_tpm <- df_pca_tpm %>% left_join(metadata, by = 'sample')
+# Add meta data
+df_pca_tpm <- df_pca_tpm %>% left_join(df_clinical, by = c('sample' ='Sample'))
+
+# Variance explained per PC
+pca_tpm_var_explained <- (pca_tpm$sdev^2) / sum(pca_tpm$sdev^2)
+
+# Percentage explained for first 10 PCs
+pca_tpm_var_explained_percent <- pca_tpm_var_explained[1:10] * 100
+
+##################### Plot TPM in PC space ####################
+
+for (var in meta_vars){
+  
+  for (pair in list(c(1, 2), c(2, 3), c(1, 3))) {
+    pc_x <- pair[1]
+    pc_y <- pair[2]
+
+    df_pca_tpm %>%
+      ggplot(aes(x = !!sym(glue('PC{pc_x}')),
+                 y = !!sym(glue('PC{pc_y}')),
+                 color = !!sym(var))) +
+      geom_point() +
+      theme_bw() +
+      labs(title = 'TPM normalization --> PCA',
+           subtitle = glue('N intersect genes across studies: {n_genes}'),
+           x = glue('PC{pc_x} ({round(pca_tpm_var_explained_percent[{pc_x}], 1)}% variance explained)'),
+           y = glue('PC{pc_y} ({round(pca_tpm_var_explained_percent[{pc_y}], 1)}% variance explained)'))
+
+    ggsave(glue('plot/03_{prefix}_PCA_TPM_{var}_PC{pc_x}_PC{pc_y}.png'), height = 8, width = 12)
+
+  }
+
+}
+
+rm(n_genes)
 
 ###############################################################
 ########### DGD normalization: Gene subset for PCA ############ 
@@ -174,15 +278,17 @@ datasets_common <- lapply(df_dgd_list, function(x) {
 # Merge all datasets by sample, tissue, study (keeping all genes)
 merged <- dplyr::bind_rows(datasets_common)
 
-# Save metadata separately
-metadata <- merged %>% dplyr::select(sample, tissue, study)
+# Save sample names separately
+sample <- merged %>% dplyr::select(sample) %>% unlist()
 
 # Prepare expression matrix for PCA (only numeric gene columns)
 expr <- merged %>% dplyr::select(all_of(common_genes)) %>% as.data.frame()
-rownames(expr) <- metadata$sample   # keep sample names as rownames
+rownames(expr) <- sample   # keep sample names as rownames
 
 # Transpose to samples × genes
 expr_t <- as.matrix(expr)   # samples are rows, genes are columns
+
+n_genes <- ncol(expr_t)
 
 # Remove zero-variance genes
 # expr_t_nzv <- expr_t[, apply(expr_t, 2, sd) > 0]
@@ -191,72 +297,51 @@ expr_t <- as.matrix(expr)   # samples are rows, genes are columns
 pca_dgd <- prcomp(expr_t, scale. = TRUE)
 
 # Prepare PCA results for plotting
-df_pca_dgd <- as.data.frame(pca_dgd$x) %>%
-  dplyr::select(PC1, PC2, PC3) %>%
-  rownames_to_column("sample") %>%
-  left_join(metadata, by = "sample")
+df_pca_dgd <- pca_dgd$x %>% as.data.frame() %>% dplyr::select(PC1, PC2, PC3) %>% rownames_to_column('sample')
 
-###############################################################
-##################### Plot TPM in PC space ####################
-###############################################################
+# Add meta data
+df_pca_dgd <- df_pca_dgd %>% left_join(df_clinical, by = c('sample' ='Sample'))
 
-df_pca_tpm %>% 
-  ggplot(aes(x = PC1, 
-             y = PC2, 
-             color = study)) + 
-  geom_point() + 
-  theme_bw() + 
-  labs(title = 'TPM normalization --> PCA')
+# Variance explained per PC
+pca_dgd_var_explained <- (pca_dgd$sdev^2) / sum(pca_dgd$sdev^2)
 
-ggsave(glue('plot/03_{prefix}_PCA_TPM.png'), height = 8, width = 12)
+# Percentage explained for first 10 PCs
+pca_dgd_var_explained_percent <- pca_dgd_var_explained[1:10] * 100
 
-###############################################################
 ############# Plot DGD normalization in PC space ##############
-###############################################################
 
-df_pca_dgd %>% 
-  ggplot(aes(x = PC1, 
-             y = PC2, 
-             color = study)) + 
-  geom_point() + 
-  theme_bw() + 
-  labs(title = 'DGD normalization --> PCA')
+for (var in meta_vars){
+  
+  for (pair in list(c(1, 2), c(2, 3), c(1, 3))) {
+    pc_x <- pair[1]
+    pc_y <- pair[2]
+  
+    df_pca_dgd %>% 
+      ggplot(aes(x = !!sym(glue('PC{pc_x}')),
+                 y = !!sym(glue('PC{pc_y}')),
+                 color = !!sym(var))) + 
+      geom_point() + 
+      theme_bw() + 
+      labs(title = 'DGD normalization --> PCA', 
+           subtitle = glue('N intersect genes across studies: {n_genes}'), 
+           x = glue('PC{pc_x} ({round(pca_dgd_var_explained_percent[{pc_x}], 1)}% variance explained)'),
+           y = glue('PC{pc_y} ({round(pca_dgd_var_explained_percent[{pc_y}], 1)}% variance explained)'))
+    
+    ggsave(glue('plot/03_{prefix}_PCA_DGD_{var}_PC{pc_x}_PC{pc_y}.png'), height = 8, width = 12)
+  
+  }
+}
 
-ggsave(glue('plot/03_{prefix}_PCA_DGD_normalization.png'), height = 8, width = 12)
-
-###############################################################
-####################### DGD Latent Space ######################
-###############################################################
-
-# See batch effect across dataframe
-df_dgd_latent_space %>% 
-  ggplot(aes(x = latent_dim_1, 
-             y = latent_dim_2, 
-             color = study)) + 
-  geom_point() + 
-  theme_bw() + 
-  labs(title = 'DGD Latent variables')
-
-ggsave(glue('plot/03_{prefix}_DGD_latent_variables.png'), height = 8, width = 12)
-
+rm(n_genes)
 
 ###############################################################
-################### PCA on DGD Latent Space ###################
+###################### Variance explained #####################
 ###############################################################
-pca_latent <- prcomp(df_dgd_latent_space %>% column_to_rownames('sample') %>% dplyr::select(!c(tissue, study)), scale. = TRUE)
 
-# Save results in object that is ready for gg-plotting 
-df_pca_latent <- pca_latent$x %>% as.data.frame() %>% dplyr::select(PC1, PC2, PC3) %>% rownames_to_column('sample')
+# assuming percent_explained is already computed
+# barplot(pca_tpm_var_explained_percent[1:10],
+#         names.arg = paste0("PC", 1:10),
+#         ylab = "Variance Explained (%)",
+#         xlab = "Principal Components",
+#         main = "Variance Explained by Top 10 PCs")
 
-# Merge with meta data bc we love colors <3 
-df_pca_latent <- df_pca_latent %>% left_join(metadata, by = 'sample')
-
-df_pca_latent %>% 
-  ggplot(aes(x = PC1, 
-             y = PC2, 
-             color = study)) + 
-  geom_point() + 
-  theme_bw() + 
-  labs(title = 'Latent space --> PCA')
-
-ggsave(glue('plot/03_{prefix}_PCA_DGD_latent_variables.png'), height = 8, width = 12)
