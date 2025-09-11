@@ -7,6 +7,9 @@ library(GSVA)
 
 cohorts <- readRDS('data/wetransfer_bulkrnaseq_2025-08-28_1101/cohorts_all_allNorm.rds')
 
+# Number of data sets per cancer type 
+lapply(cohorts, function(x) length(x))
+
 # Reference genome
 ref_genomes <- data.frame(study = c("Auslander_MEL", "Cho_NSCLC", "Choueiri_aRCC",
                                     "Clouphesy_GBM", "Du_MEL", "Gide_MEL", "Hugo_MEL", 

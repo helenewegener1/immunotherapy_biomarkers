@@ -95,9 +95,9 @@ prefix <- 'all_raw'
 # saveRDS(df_tpm_list, 'rds/03_df_tpm_list.rds')
 # saveRDS(df_dgd_latent_space, 'rds/03_df_dgd_latent_space.rds')
 
-# df_dgd_list <- readRDS('rds/03_df_dgd_list.rds')
-# df_tpm_list <- readRDS('rds/03_df_tpm_list.rds')
-# df_dgd_latent_space <- readRDS('rds/03_df_dgd_latent_space.rds')
+df_dgd_list <- readRDS('rds/03_df_dgd_list.rds')
+df_tpm_list <- readRDS('rds/03_df_tpm_list.rds')
+df_dgd_latent_space <- readRDS('rds/03_df_dgd_latent_space.rds')
 
 ###############################################################
 ####################### DGD Latent Space ######################
@@ -142,22 +142,28 @@ pca_latent_var_explained <- (pca_latent$sdev^2) / sum(pca_latent$sdev^2)
 # Percentage explained for first 10 PCs
 pca_latent_var_explained_percent <- pca_latent_var_explained[1:10] * 100
 
-for (var in meta_vars){
+for (pair in list(c(1, 2), c(2, 3), c(1, 3))) {
   
-  df_pca_latent %>% 
-    ggplot(aes(x = PC1, 
-               y = PC2, 
-               color = !!sym(var))) + 
-    geom_point() + 
-    theme_bw() + 
-    labs(title = 'Latent space --> PCA', 
-         x = glue('PC1 ({round(pca_latent_var_explained_percent[1], 1)}% variance explained)'),
-         y = glue('PC2 ({round(pca_latent_var_explained_percent[2], 1)}% variance explained)'))
-  
-  ggsave(glue('plot/03_{prefix}_PCA_latent_variables_{var}.png'), height = 8, width = 12)
+  pc_x <- pair[1]
+  pc_y <- pair[2]
+
+  for (var in meta_vars){
+    
+    df_pca_latent %>% 
+      ggplot(aes(x = !!sym(glue('PC{pc_x}')),
+                 y = !!sym(glue('PC{pc_y}')),
+                 color = !!sym(var))) + 
+      geom_point() + 
+      theme_bw() + 
+      labs(title = 'Latent space --> PCA', 
+           x = glue('PC{pc_x} ({round(pca_latent_var_explained_percent[{pc_x}], 1)}% variance explained)'),
+           y = glue('PC{pc_y} ({round(pca_latent_var_explained_percent[{pc_y}], 1)}% variance explained)'))
+    
+    ggsave(glue('plot/03_{prefix}_PCA_latent_variables_{var}_PC{pc_x}_PC{pc_y}.png'), height = 8, width = 12)
+    
+  }
   
 }
-
 
 ###############################################################
 ################## TPM: Gene subset for PCA ################### 
