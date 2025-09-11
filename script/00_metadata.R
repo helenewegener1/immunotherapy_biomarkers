@@ -7,6 +7,8 @@ library(GSVA)
 
 cohorts <- readRDS('data/wetransfer_bulkrnaseq_2025-08-28_1101/cohorts_all_allNorm.rds')
 
+cohorts$Melanoma$Hugo_MEL$Clinical %>% head()
+
 # Number of data sets per cancer type 
 lapply(cohorts, function(x) length(x))
 

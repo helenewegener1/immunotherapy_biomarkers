@@ -107,11 +107,11 @@ availableSignatures()
 # sysdata.rda downlaoded from signifinder github: https://github.com/CaluraLab/signifinder/blob/main/R/sysdata.rda
 # load('~/Downloads/sysdata.rda')
 
-Tinflam_Ayers %>% filter(class == 'TInflam') %>% dplyr::select(SYMBOL) %>% unlist() %in% response_scores$TGEP
+Tinflam_Ayers #%>% filter(class == 'TInflam') %>% dplyr::select(SYMBOL) %>% unlist() %in% response_scores$TGEP
 
-ExpandedImmune_Ayers %>% dplyr::select(SYMBOL) %>% unlist() %in% response_scores$TGEP
+# ExpandedImmune_Ayers %>% dplyr::select(SYMBOL) %>% unlist() %in% response_scores$TGEP
 
-IFN_Ayers %>% dplyr::select(SYMBOL) %>% unlist() %in% response_scores$TGEP
+# IFN_Ayers %>% dplyr::select(SYMBOL) %>% unlist() %in% response_scores$TGEP
 
 ###############################################################
 ##################### Merge cancer types ###################### 
