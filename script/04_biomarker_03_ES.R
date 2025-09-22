@@ -15,7 +15,8 @@ studies <- df_clinical$study %>% unique()
 df_ES <- tibble(
   study = character(),
   sample = character(),
-  TGEP = numeric()
+  gene_set = character(), 
+  ES = numeric()
 )
 
 for (this_study in studies){
@@ -34,29 +35,40 @@ for (this_study in studies){
     # Enrichment like in article
     # ES = (enriched cancer marker genes * 16,883 genes) / (significant genes * cancer marker genes)
     # A gene is DE if adjusted p value (q value) is < 0.01 and log2FC > 1 
-
-    # enriched_cancer_marker_genes is the number of genes in the gene set that are DE
-    enriched_cancer_marker_genes <- dea_file %>% filter(genes %in% geneset$TGEP & q_value < 0.01 & log2_fold_change > 1) %>% nrow()
-
+    
     # significant_genes is the number of genes that are DE
     significant_genes <- dea_file %>% filter(q_value < 0.01 & log2_fold_change > 1) %>% nrow()
-
-    # cancer_marker_genes is the number of genes in the gene list
-    cancer_marker_genes <- length(geneset$TGEP)
-
-    ES_TGEP <- (enriched_cancer_marker_genes * 16883) / (significant_genes * cancer_marker_genes)
-
-    df_ES <- df_ES %>%
-      add_row(study = this_study,
-              sample = study_sample,
-              TGEP = ES_TGEP)
-
+    
+    for (gs_name in names(geneset)){
+      
+      # enriched_cancer_marker_genes is the number of genes in the gene set that are DE
+      enriched_cancer_marker_genes <- dea_file %>% filter(genes %in% geneset[[gs_name]] & q_value < 0.01 & log2_fold_change > 1) %>% nrow()
+      
+      # cancer_marker_genes is the number of genes in the gene list
+      cancer_marker_genes <- length(geneset[[gs_name]])
+      
+      ES <- (enriched_cancer_marker_genes * 16883) / (significant_genes * cancer_marker_genes)
+      
+      df_ES <- df_ES %>%
+        add_row(study = this_study,
+                sample = study_sample,
+                gene_set = gs_name,
+                ES = ES
+                )
+      
+      
+    }
+    
   }
 
 }
 
+# Wrangle
+df_ES <- df_ES %>% pivot_wider(names_from = gene_set, values_from = ES)
+
 # Add meta data
 df_ES_meta <- df_ES %>% left_join(df_clinical, by = c('sample' = 'Sample', 'study'))
+df_ES_meta <- df_ES_meta %>% rename(c('Sample' = 'sample'))
 
 # Export 
 saveRDS(df_ES_meta, 'rds/04_03_ES_df_plot.rds')
