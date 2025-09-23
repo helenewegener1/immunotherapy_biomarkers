@@ -1,5 +1,7 @@
-data
-out
-rds
-plot
+
 .Rhistory
+
+00_data
+*/out
+
+
