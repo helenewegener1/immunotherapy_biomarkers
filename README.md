@@ -1,4 +1,4 @@
-# Immunotherapy 
+# Immunotherapy biomarker calculation 
 
 Testing different calculation methods for enrichment of biomarkers for cancer bulk RNA-seq samples of patients that have recived immunothereapy across multiple studies. 
 
