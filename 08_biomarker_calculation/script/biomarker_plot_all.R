@@ -93,15 +93,15 @@ for (this_cancer in cancer_types){
     
     
     plots$signifinder <- plots$signifinder + labs(
-      title = glue('{this_cancer}: TinflamSign signifinder = TGEP'), 
-      subtitle = 'Normalized by household genes and specific weight on the 18 genes',
+      title = glue('{this_cancer}: signifinder'), 
+      subtitle = 'This original way of calulcating the score',
       y = glue('{this_geneset} score')
     ) 
     
     # Export plots in one figure
     wrap_plots(plots) + plot_annotation(
-      title = glue("{this_cancer} cancer, {this_geneset} genes split by {var}")
-      # subtitle = "Optional subtitle here",
+      title = glue("{this_cancer} cancer, {this_geneset} genes split by {var}"),
+      subtitle = glue("N genes of geneset: {geneset[[this_geneset]] %>% length()}")
       # caption = "Data source: mtcars"
     ) &
       theme(plot.title = element_text(face = "bold"))
