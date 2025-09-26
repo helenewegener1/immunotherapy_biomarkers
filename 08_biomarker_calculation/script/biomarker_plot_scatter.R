@@ -36,17 +36,27 @@ for (this_cancer in cancer_types){
            aes(
              x = !!sym(glue("{this_geneset}_DEA_logFC_ssGSEA")), 
              y = !!sym(glue("{this_geneset}_signifinder")),
-             color = Response,
-             shape = Treatment
+             color = Response
            ) ) + 
       geom_point() +
       theme_bw() + 
+      facet_wrap(vars(Treatment)) + 
       # scale_color_manual(values = c("darkred", "forestgreen"))
       labs(
         title = glue("{this_cancer}: {this_geneset}")
       )
     
-    ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}.pdf"), width = 8, height = 6)
+    # Adjust size of plot according to N unique treatments
+    n_treatment <- df_plot$Treatment %>% unique() %>% length()
+    
+    if (n_treatment == 2) {
+      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}.pdf"), width = 12, height = 6)
+    } else if (n_treatment > 2) {
+      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}.pdf"), width = 12, height = 8)
+    } else { # if only 1 unique treatment 
+      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}.pdf"), width = 8, height = 7)
+    }
+    
     
   }
 }
