@@ -18,6 +18,7 @@ cancer_types <- df_clinical$cancer %>% unique()
 studies <- df_clinical$study %>% unique()
 meta_vars <- c('Response', 'Biopsy_time', 'Treatment', 'Sex', 'RECIST')
 
+# logFC
 for (this_cancer in cancer_types){
   for (this_geneset in names(geneset)){
     
@@ -50,14 +51,60 @@ for (this_cancer in cancer_types){
     n_treatment <- df_plot$Treatment %>% unique() %>% length()
     
     if (n_treatment == 2) {
-      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}.pdf"), width = 12, height = 6)
+      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}_logFC.pdf"), width = 12, height = 6)
     } else if (n_treatment > 2) {
-      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}.pdf"), width = 12, height = 8)
+      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}_logFC.pdf"), width = 12, height = 8)
     } else { # if only 1 unique treatment 
-      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}.pdf"), width = 8, height = 7)
+      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}_logFC.pdf"), width = 8, height = 7)
     }
     
     
   }
 }
+
+
+# zscore
+for (this_cancer in cancer_types){
+  for (this_geneset in names(geneset)){
+    
+    df_tpm <- df_plot_signifinder %>% 
+      filter(cancer == this_cancer) %>% 
+      dplyr::select(Sample, !!sym(this_geneset)) %>% 
+      rename(!!glue("{this_geneset}_signifinder") := !!sym(this_geneset))
+    
+    df_plot <- df_plot_DEA_zscore_ssGSEA %>% 
+      filter(cancer == this_cancer) %>% 
+      dplyr::select(Sample, !!sym(this_geneset), Response, Treatment) %>% 
+      rename(!!glue("{this_geneset}_DEA_zscore_ssGSEA") := !!sym(this_geneset)) %>% 
+      left_join(df_tpm, by = "Sample")
+    
+    ggplot(df_plot,
+           aes(
+             x = !!sym(glue("{this_geneset}_DEA_zscore_ssGSEA")), 
+             y = !!sym(glue("{this_geneset}_signifinder")),
+             color = Response
+           ) ) + 
+      geom_point() +
+      theme_bw() + 
+      facet_wrap(vars(Treatment)) + 
+      # scale_color_manual(values = c("darkred", "forestgreen"))
+      labs(
+        title = glue("{this_cancer}: {this_geneset}")
+      )
+    
+    # Adjust size of plot according to N unique treatments
+    n_treatment <- df_plot$Treatment %>% unique() %>% length()
+    
+    if (n_treatment == 2) {
+      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}_zscore.pdf"), width = 12, height = 6)
+    } else if (n_treatment > 2) {
+      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}_zscore.pdf"), width = 12, height = 8)
+    } else { # if only 1 unique treatment 
+      ggsave(glue("08_biomarker_calculation/plot/scatter_{this_cancer}_{this_geneset}_zscore.pdf"), width = 8, height = 7)
+    }
+    
+    
+  }
+}
+
 
