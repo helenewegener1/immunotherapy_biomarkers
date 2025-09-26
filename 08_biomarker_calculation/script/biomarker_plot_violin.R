@@ -113,7 +113,7 @@ for (this_cancer in cancer_types){
     ) &
       theme(plot.title = element_text(face = "bold"))
     
-    ggsave(glue('08_biomarker_calculation/plot/violin_{this_cancer}_{this_geneset}_{var}.png'), width = 13, height = 9)
+    ggsave(glue('08_biomarker_calculation/plot/{this_cancer}_{this_geneset}_{var}.png'), width = 13, height = 9)
     
     
   }
@@ -159,6 +159,7 @@ for (this_cancer in cancer_types){
       # Plot for each dataset 
       plots <- lapply(names(plot_list), function(name) {
         
+        name <- "ES"
         df <- plot_list[[name]]
         
         df %>% 
@@ -228,7 +229,7 @@ for (this_cancer in cancer_types){
       ) &
         theme(plot.title = element_text(face = "bold"))
       
-      ggsave(glue('08_biomarker_calculation/plot/violin_{this_cancer}_{this_geneset}_{var2}_{var1}.png'), width = 13, height = 9)
+      ggsave(glue('08_biomarker_calculation/plot/{this_cancer}_{this_geneset}_{var2}_{var1}.png'), width = 13, height = 9)
       
       
     }

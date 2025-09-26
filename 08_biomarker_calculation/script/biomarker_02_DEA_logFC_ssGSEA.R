@@ -46,7 +46,7 @@ geneset <- readRDS('05_genesets/out/geneset.rds')
 dea_files <- readRDS('08_biomarker_calculation/out/DEA_files.rds')
 
 # Contains score for all samples 
-dea_files_mat <- dea_files %>% dplyr::select(genes, starts_with('z_score')) %>% column_to_rownames('genes') %>% as.matrix()
+dea_files_mat <- dea_files %>% dplyr::select(genes, starts_with('log2_fold_change')) %>% column_to_rownames('genes') %>% as.matrix()
 
 # Change Inf to large value
 dea_files_mat[is.infinite(dea_files_mat) & dea_files_mat > 0] <- 10   # replace Inf
@@ -57,10 +57,10 @@ ssgsea_on_zscore <- run_ssgsea(dea_files_mat, geneset)
 
 # Reformat ssGSEA output
 ssgsea_on_zscore <- ssgsea_on_zscore %>% t() %>% as.data.frame() %>% rownames_to_column('Sample')
-ssgsea_on_zscore$Sample <- str_remove(ssgsea_on_zscore$Sample, 'z_score__')
+ssgsea_on_zscore$Sample <- str_remove(ssgsea_on_zscore$Sample, 'log2_fold_change__')
 
 # Merge with metadata
 ssgsea_on_zscore_plot <- ssgsea_on_zscore %>% left_join(df_clinical, by = 'Sample')
 
 # Export 
-saveRDS(ssgsea_on_zscore_plot, '08_biomarker_calculation/out/02_DEAssGSEA_df_plot.rds')
+saveRDS(ssgsea_on_zscore_plot, '08_biomarker_calculation/out/02_DEA_logFC_ssGSEA_df_plot.rds')
